@@ -1533,6 +1533,8 @@ ifeq ($(MONITOR_CMD), 'putty')
 	endif
 else ifeq ($(MONITOR_CMD), picocom)
 		$(MONITOR_CMD) -b $(MONITOR_BAUDRATE) $(MONITOR_PARAMS) $(call get_monitor_port)
+else ifeq ($(MONITOR_CMD), minicom)
+		$(MONITOR_CMD) -b $(MONITOR_BAUDRATE) -D $(MONITOR_PARAMS) $(call get_monitor_port)
 else ifeq ($(MONITOR_CMD), cu)
 		$(MONITOR_CMD) -l $(call get_monitor_port) -s $(MONITOR_BAUDRATE)
 else
