@@ -11,6 +11,7 @@ The following are the different variables that can be overwritten in the user ma
 *	[Avrdude setting variables](#avrdude-setting-variables)
 *	[Bootloader variables](#bootloader-variables)
 *	[ChipKIT variables](#chipkit-variables)
+*	[Ctags variables](#ctags-variables)
 
 ## Global variables
 
@@ -83,7 +84,7 @@ Defaults to `ard-reset-arduino` with the extra `--caterina` flag for atmega32u4 
 **Example:**
 
 ```Makefile
-RESET_CMD = ~/gertduino/reset
+RESET_CMD = $(HOME)/gertduino/reset
 ```
 
 **Requirement:** *Optional*
@@ -190,12 +191,12 @@ ARDMK_VENDOR = sparkfun
 
 Path to `sketchbook` directory.
 
-Usually can be auto-detected from the Arduino `preferences.txt` file or the default `~/sketchbook`
+Usually can be auto-detected from the Arduino `preferences.txt` file or the default `$(HOME)/sketchbook`
 
 **Example:**
 
 ```Makefile
-ARDUINO_SKETCHBOOK = ~/sketches
+ARDUINO_SKETCHBOOK = $(HOME)/sketches
 ```
 
 **Requirement:** *Optional*
@@ -210,15 +211,15 @@ Path to Arduino `preferences.txt` file.
 
 Usually can be auto-detected as `AUTO_ARDUINO_PREFERENCES` from the defaults:
 
-*	on Linux (1.0):     `~/.arduino/preferences.txt`
-*	on Linux (1.5+):    `~/.arduino15/preferences.txt`
-*	on Mac OS X (1.0):  `~/Library/Arduino/preferences.txt`
-*	on Mac OS X (1.5+): `~/Library/Arduino15/preferences.txt`
+*	on Linux (1.0):     `$(HOME)/.arduino/preferences.txt`
+*	on Linux (1.5+):    `$(HOME)/.arduino15/preferences.txt`
+*	on Mac OS X (1.0):  `$(HOME)/Library/Arduino/preferences.txt`
+*	on Mac OS X (1.5+): `$(HOME)/Library/Arduino15/preferences.txt`
 
 **Example:**
 
 ```Makefile
-ARDUINO_PREFERENCES_PATH = ~/sketches/preferences.txt
+ARDUINO_PREFERENCES_PATH = $(HOME)/sketches/preferences.txt
 ```
 
 **Requirement:** *Optional*
@@ -351,7 +352,7 @@ Defaults to `libraries` directory within user's sketchbook.
 
 ```Makefile
 # Linux
-USER_LIB_PATH = ~/sketchbook/libraries
+USER_LIB_PATH = $(HOME)/sketchbook/libraries
 # For a random project on *nix
 USER_LIB_PATH = /path/to/my/project
 ```
@@ -428,7 +429,7 @@ Path to non-standard core's variant files.
 **Example:**
 
 ```Makefile
-ARDUINO_VAR_PATH = ~/sketchbook/hardware/arduino-tiny/cores/tiny
+ARDUINO_VAR_PATH = $(HOME)/sketchbook/hardware/arduino-tiny/cores/tiny
 ```
 
 **Requirement:** *Optional*
@@ -912,7 +913,7 @@ OTHER_LIBS = -lsomeplatformlib
 
 Controls, *exclusively*, which C standard is to be used for compilation.
 
-Defaults to `undefined` on 1.0.x or `-std=gnu11 -flto -fno-fat-lto-objects` on 1.5+ or if you install AVR toolchain > 4.9.0
+Defaults to `undefined` on 1.0.x or `-std=gnu11` on 1.5+ or if you install AVR toolchain > 4.9.0
 
 Possible values:
 
@@ -927,14 +928,14 @@ Possible values:
 	*	`-std=c11`
 	*	`-std=gnu89`
 	*	`-std=gnu99`
-	*	`-std=gnu11 -flto -fno-fat-lto-objects` - This is the default for C code
+	*	`-std=gnu11` - This is the default for C code
 
 For more information, please refer to the [Options Controlling C Dialect](https://gcc.gnu.org/onlinedocs/gcc/C-Dialect-Options.html)
 
 **Example:**
 
 ```Makefile
-CFLAGS_STD = = -std=gnu89
+CFLAGS_STD = -std=gnu89
 ```
 
 **Requirement:** *Optional*
@@ -947,7 +948,7 @@ CFLAGS_STD = = -std=gnu89
 
 Controls, *exclusively*, which C++ standard is to be used for compilation.
 
-Defaults to `undefined` on 1.0 or `-std=gnu++11 -fno-threadsafe-statics -flto` on AVR toolchain > 4.9.0 (e.g. IDE 1.6.10+)
+Defaults to `undefined` on 1.0 or `-std=gnu++11` on AVR toolchain > 4.9.0 (e.g. IDE 1.6.10+)
 
 Possible values:
 
@@ -964,7 +965,7 @@ Possible values:
 	*	`-std=c++1y`
 	*	`-std=c++14`
 	*	`-std=gnu++98`
-	*	`-std=gnu++11 -fno-threadsafe-statics -flto` - This is the default for C++ code
+	*	`-std=gnu++11` - This is the default for C++ code
 	*	`-std=gnu++1y`
 	*	`-std=gnu++14`
 
@@ -973,7 +974,7 @@ For more information, please refer to the [Options Controlling C Dialect](https:
 **Example:**
 
 ```Makefile
-CXXFLAGS_STD = = -std=gnu++98
+CXXFLAGS_STD = -std=gnu++98
 ```
 
 **Requirement:** *Optional*
@@ -987,7 +988,7 @@ CXXFLAGS_STD = = -std=gnu++98
 Flags passed to compiler for files compiled as C. Add more flags to this
 variable using `+=`.
 
-Defaults to all flags required for a typical build.
+Defaults to `undefined` on 1.0 or `-flto -fno-fat-lto-objects -fdiagnostics-color` on AVR toolchain > 4.9.0 (e.g. IDE 1.6.10+)
 
 **Example:**
 
@@ -1006,7 +1007,9 @@ CFLAGS += -my-c-only-flag
 Flags passed to the compiler for files compiled as C++. Add more flags to this
 variable using `+=`.
 
-Defaults to `-fpermissive -fno-exceptions`
+Defaults to `-fpermissive -fno-exceptions` on 1.0
+or `-fpermissive -fno-exceptions -fno-threadsafe-statics -flto -fno-devirtualize -fdiagnostics-color`
+on AVR toolchain > 4.9.0 (e.g. IDE 1.6.10+)
 
 **Example:**
 
@@ -1104,7 +1107,7 @@ Defaults to `pre-build-hook.sh`
 **Example:**
 
 ```Makefile
-PRE_BUILD_HOOK = ~/bin/bump-revision.sh
+PRE_BUILD_HOOK = $(HOME)/bin/bump-revision.sh
 ```
 
 **Requirement:** *Optional*
@@ -1219,7 +1222,7 @@ Defaults to `ARDUINO_SKETCHBOOK/hardware/ALTERNATE_CORE`
 **Example:**
 
 ```Makefile
-ALTERNATE_CORE_PATH = ~/sketchbook/hardware/arduino-tiny/cores/tiny
+ALTERNATE_CORE_PATH = $(HOME)/sketchbook/hardware/arduino-tiny/cores/tiny
 ```
 
 **Requirement:** *Optional*
@@ -1237,7 +1240,7 @@ Defaults to `ARDUINO_DIR/hardware/arduino/boards.txt`
 **Example:**
 
 ```Makefile
-BOARD_TXT = ~/sketchbook/hardware/boards.txt
+BOARD_TXT = $(HOME)/sketchbook/hardware/boards.txt
 # or
 BOARD_TXT = /usr/share/arduino/hardware/arduino/boards.txt
 ```
@@ -1371,12 +1374,12 @@ Defaults to `/usr/share/arduino/hardware/arduino/bootloaders` (Linux)
 **Example:**
 
 ```Makefile
-BOOTLOADER_PARENT = ~/sketchbook/hardware/promicro/bootloaders
+BOOTLOADER_PARENT = $(HOME)/sketchbook/hardware/promicro/bootloaders
 BOOTLOADER_PATH  = caterina
 BOOTLOADER_FILE  = Caterina-promicro16.hex
 ```
 
-Would result in an absolute path to the bootloader hex file of `~/sketchbook/hardware/promicro/bootloaders/caterina/Caterina-promicro16.hex`
+Would result in an absolute path to the bootloader hex file of `$(HOME)/sketchbook/hardware/promicro/bootloaders/caterina/Caterina-promicro16.hex`
 
 **Requirement:** *Optional, unless BOOTLOADER_FILE and/or BOOTLOADER_PATH are user-defined*
 
@@ -1395,7 +1398,58 @@ Usually can be auto-detected as `AUTO_MPIDE_DIR` from the defaults `/usr/share/m
 **Example:**
 
 ```Makefile
-MPIDE_DIR = ~/mpide
+MPIDE_DIR = $(HOME)/mpide
+```
+
+**Requirement:** *Optional*
+
+----
+
+## Ctags variables
+
+### TAGS_FILE
+
+**Description:**
+
+Output file name for tags. Defaults to 'tags'.
+
+**Example:**
+
+```Makefile
+TAGS_FILE = .tags
+```
+
+**Requirement:** *Optional*
+
+----
+
+### CTAGS_OPTS
+
+**Description:**
+
+Additional options to pass to `ctags` command.
+
+**Example:**
+
+```Makefile
+# Run ctags in verbose mode
+CTAGS_OPTS = -V
+```
+
+**Requirement:** *Optional*
+
+----
+
+### CTAGS_CMD
+
+**Description:**
+
+Location of `ctags` binary. Defaults to user path.
+
+**Example:**
+
+```Makefile
+CTAGS_CMD = /usr/local/bin/
 ```
 
 **Requirement:** *Optional*
@@ -1408,12 +1462,12 @@ MPIDE_DIR = ~/mpide
 
 Path to chipKIT `preferences.txt` file.
 
-Usually can be auto-detected as `AUTO_MPIDE_PREFERENCES_PATH` from the defaults `~/.mpide/preferences.txt` (Linux) or `~/Library/Mpide/preferences.txt` (OSX)
+Usually can be auto-detected as `AUTO_MPIDE_PREFERENCES_PATH` from the defaults `$(HOME)/.mpide/preferences.txt` (Linux) or `$(HOME)/Library/Mpide/preferences.txt` (OSX)
 
 **Example:**
 
 ```Makefile
-MPIDE_PREFERENCES_PATH = ~/chipkit/preferences.txt
+MPIDE_PREFERENCES_PATH = $(HOME)/chipkit/preferences.txt
 ```
 
 **Requirement:** *Optional*

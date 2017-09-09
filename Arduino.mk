@@ -19,7 +19,7 @@
 #
 # Original Arduino adaptation by mellis, eighthave, oli.keller
 #
-# Current version: 1.5.2
+# Current version: 1.6.0
 #
 # Refer to HISTORY.md file for complete history of changes
 #
@@ -628,8 +628,12 @@ ifeq ($(strip $(NO_CORE)),)
             USB_VID = $(call PARSE_BOARD,$(BOARD_TAG),build.vid)
         endif
 
+        # coping with 2-3 methods sparkfun use for usb.pid
         ifndef USB_PID
-            USB_PID = $(call PARSE_BOARD,$(BOARD_TAG),build.pid)
+            USB_PID := $(call PARSE_BOARD,$(BOARD_TAG),build.pid)
+            ifndef USB_PID
+                USB_PID := $(call PARSE_BOARD,$(BOARD_TAG),menu.(chip|cpu).$(BOARD_SUB).build.pid)
+            endif
         endif
     endif
 
@@ -1041,7 +1045,7 @@ endif
 
 ifndef CFLAGS_STD
     ifeq ($(shell expr $(CC_VERNUM) '>' 490), 1)
-        CFLAGS_STD      = -std=gnu11 -flto -fno-fat-lto-objects
+        CFLAGS_STD      = -std=gnu11
     else
         CFLAGS_STD        =
     endif
@@ -1052,7 +1056,7 @@ endif
 
 ifndef CXXFLAGS_STD
     ifeq ($(shell expr $(CC_VERNUM) '>' 490), 1)
-        CXXFLAGS_STD      = -std=gnu++11 -fno-threadsafe-statics -flto
+        CXXFLAGS_STD      = -std=gnu++11
     else
         CXXFLAGS_STD      =
     endif
@@ -1065,7 +1069,9 @@ CFLAGS        += $(CFLAGS_STD)
 CXXFLAGS      += -fpermissive -fno-exceptions $(CXXFLAGS_STD)
 ASFLAGS       += -x assembler-with-cpp
 ifeq ($(shell expr $(CC_VERNUM) '>' 490), 1)
-    ASFLAGS += -flto
+    ASFLAGS  += -flto
+    CXXFLAGS += -fno-threadsafe-statics -flto -fno-devirtualize -fdiagnostics-color
+    CFLAGS   += -flto -fno-fat-lto-objects -fdiagnostics-color
 endif
 LDFLAGS       += -$(MCU_FLAG_NAME)=$(MCU) -Wl,--gc-sections -O$(OPTIMIZATION_LEVEL)
 ifeq ($(shell expr $(CC_VERNUM) '>' 490), 1)
@@ -1160,7 +1166,7 @@ endif
 
 ########################################################################
 # Tools version info
-ARDMK_VERSION = 1.5
+ARDMK_VERSION = 1.6
 $(call show_config_variable,ARDMK_VERSION,[COMPUTED])
 
 CC_VERSION := $(shell $(CC) -dumpversion)
@@ -1302,6 +1308,22 @@ $(OBJDIR)/%.lss: $(OBJDIR)/%.elf $(COMMON_DEPS)
 $(OBJDIR)/%.sym: $(OBJDIR)/%.elf $(COMMON_DEPS)
 	@$(MKDIR) $(dir $@)
 	$(NM) --size-sort --demangle --reverse-sort --line-numbers $< > $@
+
+########################################################################
+# Ctags
+
+# Assume ctags is on path unless has been specified
+ifndef CTAGS_EXEC
+    CTAGS_EXEC = ctags
+endif
+
+# Default to 'tags' unless user has specified a tags file
+ifndef TAGS_FILE
+    TAGS_FILE = tags
+endif
+
+# ctags command: append, flags unsort (as will be sorted after) and specify filename
+CTAGS_CMD = $(CTAGS_EXEC) $(CTAGS_OPTS) -auf
 
 ########################################################################
 # Avrdude
@@ -1560,6 +1582,23 @@ generate_assembly: $(OBJDIR)/$(TARGET).s
 generated_assembly: generate_assembly
 		@$(ECHO) "\"generated_assembly\" target is deprecated. Use \"generate_assembly\" target instead\n\n"
 
+.PHONY: tags
+tags:
+ifneq ($(words $(wildcard $(TAGS_FILE))), 0)
+	rm -f $(TAGS_FILE)
+endif
+	@$(ECHO) "Generating tags for local sources (INO an PDE files as C++): "
+	$(CTAGS_CMD) $(TAGS_FILE) --langmap=c++:.ino --langmap=c++:.pde $(LOCAL_SRCS)
+ifneq ($(words $(ARDUINO_LIBS)), 0)
+		@$(ECHO) "Generating tags for project libraries: "
+		$(CTAGS_CMD) $(TAGS_FILE) $(foreach lib, $(ARDUINO_LIBS),$(USER_LIB_PATH)/$(lib)/*)
+endif
+	@$(ECHO) "Generating tags for Arduino core: "
+	$(CTAGS_CMD) $(TAGS_FILE) $(ARDUINO_CORE_PATH)/*
+	@$(ECHO) "Sorting..\n"
+	@sort $(TAGS_FILE) -o $(TAGS_FILE)
+	@$(ECHO) "Tag file generation complete, output: $(TAGS_FILE)\n"
+
 help_vars:
 		@$(CAT) $(ARDMK_DIR)/arduino-mk-vars.md
 
@@ -1591,6 +1630,7 @@ help:
                            generated assembly of the main sketch.\n\
   make burn_bootloader   - burn bootloader and fuses\n\
   make set_fuses         - set fuses without burning bootloader\n\
+  make tags              - generate tags file including project libs and Arduino core\n\
   make help_vars         - print all variables that can be overridden\n\
   make help              - show this help\n\
 "
