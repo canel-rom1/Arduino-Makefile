@@ -6,10 +6,12 @@ ARDUINO_DIR = $(ARD_DIR)/1.8.2
 ARDMK_DIR = $(ARD_DIR)/Arduino-Makefile
 AVR_TOOLS_DIR = $(ARDUINO_DIR)/hardware/tools/avr
 
-BOARD_TAG = uno
-MONITOR_PORT = /dev/ttyUSB0
+BOARD_TAG = mega
+BOARD_SUB = atmega2560
+MONITOR_PORT = /dev/arduino
 
-MONITOR_CMD = minicom
+MONITOR_CMD = picocom
+MONITOR_PARAMS = -e m
 
 ARDUINO_SKETCHBOOK = $(HOME)/arduino
 USER_LIB_PATH = $(ARDUINO_SKETCHBOOK)/libraries
