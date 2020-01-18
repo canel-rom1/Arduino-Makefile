@@ -1,8 +1,18 @@
+COMMON_INCLUDED = TRUE
 # Useful functions
 # Returns the first argument (typically a directory), if the file or directory
 # named by concatenating the first and optionally second argument
 # (directory and optional filename) exists
 dir_if_exists = $(if $(wildcard $(1)$(2)),$(1))
+
+# result = $(call READ_BOARD_TXT, 'boardname', 'parameter')
+PARSE_BOARD = $(shell if [ -f $(BOARDS_TXT) ]; \
+then \
+  grep -Ev '^\#' $(BOARDS_TXT) | \
+  grep -E "^[ \t]*$(1).$(2)=" | \
+  cut -d = -f 2- | \
+  cut -d : -f 2; \
+fi)
 
 # Run a shell script if it exists. Stops make on error.
 runscript_if_exists =                                                          \
@@ -26,8 +36,11 @@ show_config_variable = $(call show_config_info,$(1) = $($(1)) $(3),$(2))
 # Just a nice simple visual separator
 show_separator = $(call arduino_output,-------------------------)
 
+# Master Arduino Makefile include (after user Makefile)
+ardmk_include = $(shell basename $(word 2,$(MAKEFILE_LIST)))
+
 $(call show_separator)
-$(call arduino_output,Arduino.mk Configuration:)
+$(call arduino_output,$(call ardmk_include) Configuration:)
 
 ########################################################################
 #

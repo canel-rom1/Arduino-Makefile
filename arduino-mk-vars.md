@@ -11,6 +11,7 @@ The following are the different variables that can be overwritten in the user ma
 *	[Avrdude setting variables](#avrdude-setting-variables)
 *	[Bootloader variables](#bootloader-variables)
 *	[ChipKIT variables](#chipkit-variables)
+*	[ARM variables](#arm-variables)
 *	[Ctags variables](#ctags-variables)
 
 ## Global variables
@@ -73,6 +74,29 @@ AVR_TOOLS_DIR = /usr/share/arduino/hardware/tools/avr
 
 ----
 
+### ARM_TOOLS_DIR
+
+**Description:**
+
+Directory where the arm toolchain is installed. `arm-none-eabi-*` should be
+within a /bin subdirectory.
+
+Can usually be detected from `$ARDUINO_PACKAGE_DIR` /tools subdirectory when ARM
+device support is installed.
+
+**Example:**
+
+```Makefile
+ARM_TOOLS_DIR = /usr
+# or
+ARM_TOOLS_DIR =
+/usr/share/arduino/hardware/tools/arm-none-eabi-gcc/VERSION
+```
+
+**Requirement:** *Optional*
+
+----
+
 ### RESET_CMD
 
 **Description:**
@@ -108,6 +132,27 @@ ARDUINO_DIR = /usr/share/arduino
 ARDUINO_DIR = /Applications/Arduino.app/Contents/Resources/Java
 # Mac OSX with IDE 1.5+
 ARDUINO_DIR = /Applications/Arduino.app/Contents/Java
+```
+
+**Requirement:** *Optional*
+
+----
+
+### ARDUINO_PACKAGE_DIR
+
+**Description:**
+
+Directory where the Arduino package support files are stored. Can auto-detect based on default OS IDE locations.
+
+**Example:**
+
+```Makefile
+# Linux
+ARDUINO_PACKAGE_DIR = $(HOME)/.arduino15/packages
+# Mac OS X
+ARDUINO_PACKAGE_DIR = $(HOME)/Library/Arduino15/packages
+# Windows
+ARDUINO_PACKAGE_DIR = $(USERPROFILE)/AppData/Local/Arduino15/packages
 ```
 
 **Requirement:** *Optional*
@@ -155,12 +200,13 @@ ARDUINO_VERSION = 105
 
 Architecture for Arduino 1.5+
 
-Defaults to unset for 1.0 or `avr` for 1.5+
+Defaults to unset for 1.0 or `avr` for 1.5+. This value is not literally the chip architecture but will often be
+the chip series within a vendor's 'hardware' folder. For example, will default to `samd` if using Sam.mk.
 
 **Example:**
 
 ```Makefile
-ARCHITECTURE = sam
+ARCHITECTURE = arm
 ```
 
 **Requirement:** *Optional*
@@ -171,9 +217,9 @@ ARCHITECTURE = sam
 
 **Description:**
 
-Board vendor/maintainer.
+Board vendor/maintainer/series.
 
-Defaults to `arduino`
+Defaults to `arduino`.
 
 **Example:**
 
@@ -295,6 +341,33 @@ BOARD_SUB=atmega168
 ```
 
 **Requirement:** *Mandatory for 1.5+ if using a submenu CPU*
+
+----
+
+### BOARD_CLOCK
+
+**Description:**
+
+Allow selection of f_cpu and fuses specified in `boards.txt` as `{BOARD_TAG}.menu.clock.{BOARD_CLOCK}`.
+This works for microprocessor board definitions like ATtiny that specify not only the clock speed but fuse settings as clock overrides.
+
+It also works for f_cpu values specified in `boards.txt` as `{BOARD_TAG}.menu.speed.{BOARD_CLOCK}`.
+For example, the Watterott ATmega328PB library [https://github.com/watterott/ATmega328PB-Testing](https://github.com/watterott/ATmega328PB-Testing).
+
+**Example:**
+
+```Makefile
+# Select external 16 MHz clock
+BOARD_CLOCK=external16
+```
+
+**Example:**
+```Makefile
+# Select 20MHz speed
+BOARD_CLOCK=20mhz
+```
+
+**Requirement:** *Optional to override main board f_cpu and/or fuse settings.*
 
 ----
 
@@ -658,7 +731,8 @@ ISP_PROG = stk500v1
 
 **Description:**
 
-Device path to ArduinoISP. Not needed for hardware ISP's.
+Device path to ArduinoISP. Not needed for hardware ISP's. Also used to define
+bootloader port on SAMD devices.
 
 **Example:**
 
@@ -757,6 +831,37 @@ Defaults to `avr-gcc`
 
 ```Makefile
 CC_NAME = pic32-gcc
+```
+
+**Requirement:** *Optional*
+
+----
+
+## Compiler/Executable variables
+
+### TOOL_PREFIX
+
+**Description:**
+
+The tool prefix, which gets prepended to the tools like $(TOOL_PREFIX)-gcc, $(TOOL_PREFIX)-g++, etc.
+The following tools will be prefixed with '$(TOOL_PREFIX)-':
+
+   * gcc
+   * g++
+   * as
+   * objcopy
+   * objdump
+   * ar
+   * size
+   * nm
+
+Defaults to `avr`
+
+**Example:**
+
+```Makefile
+TOOL_PREFIX = arm-none-eabi
+TOOL_PREFIX = pic32
 ```
 
 **Requirement:** *Optional*
@@ -866,6 +971,18 @@ Defaults to `avr-nm`
 ```Makefile
 NM_NAME = pic32-nm
 ```
+
+**Requirement:** *Optional*
+
+----
+
+### GDB_NAME
+
+**Description:**
+
+GDB utility.
+
+Defaults to `arm-none-eabi-gdb`
 
 **Requirement:** *Optional*
 
@@ -988,7 +1105,7 @@ CXXFLAGS_STD = -std=gnu++98
 Flags passed to compiler for files compiled as C. Add more flags to this
 variable using `+=`.
 
-Defaults to `undefined` on 1.0 or `-flto -fno-fat-lto-objects -fdiagnostics-color` on AVR toolchain > 4.9.0 (e.g. IDE 1.6.10+)
+Defaults to `undefined` on 1.0 or `-flto -fno-fat-lto-objects -fdiagnostics-color=$(DIAGNOSTICS_COLOR_WHEN)` on AVR toolchain > 4.9.0 (e.g. IDE 1.6.10+)
 
 **Example:**
 
@@ -1021,6 +1138,30 @@ CXXFLAGS += -my-c++-onlyflag
 
 ----
 
+### DIAGNOSTICS_COLOR_WHEN
+
+**Description:**
+
+This variable controls the compiler's diagnostics-color setting, as defined
+in CFLAGS or CXXFLAGS, on AVR toolchain > 4.9.0.
+Supported values are: `always`, `never` and `auto`.
+For more details, see: [Options to Control Diagnostic Messages Formatting]
+(https://gcc.gnu.org/onlinedocs/gcc-4.9.2/gcc/Language-Independent-Options.html#Language-Independent-Options)
+
+Defaults to `always`.
+
+**Example:**
+
+```Makefile
+DIAGNOSTICS_COLOR_WHEN = never
+# or
+DIAGNOSTICS_COLOR_WHEN = auto
+```
+
+**Requirement:** *Optional*
+
+----
+
 ### ASFLAGS
 
 **Description:**
@@ -1044,7 +1185,7 @@ ASFLAGS += -my-as-only-flag
 
 **Description:**
 
-Flags passed to the C pre-processor (for C, C++ and assembly source flies). Add
+Flags passed to the C pre-processor (for C, C++ and assembly source files). Add
 more flags to this variable using `+=`.
 
 Defaults to all flags required for a typical build.
@@ -1063,14 +1204,27 @@ CPPFLAGS += -DMY_DEFINE_FOR_ALL_SOURCE_TYPES
 
 **Description:**
 
-Override the default build tools.
+Override the default build tool paths and names.
 
-If set to `1`, each tool (`CC`, `CXX`, `AS`, `OBJCOPY`, `OBJDUMP`, `AR`, `SIZE`, `NM`) must have its path explicitly defined. See `chipKIT.mk`.
+If OVERRIDE_EXECUTABLES is defined, all tools (`CC`, `CXX`, `AS`,
+`OBJCOPY`, `OBJDUMP`, `AR`, `SIZE`, `NM`) must have their paths
+explicitly defined. This may be used in the rare case where
+overriding a path and/or executable name is required.
+The "?=" assignment cannot be used because the executable tags
+are already implicitly defined by Make (e.g. $(CC) == cc).
 
 **Example:**
 
 ```Makefile
 OVERRIDE_EXECUTABLES = 1
+CC      = /usr/bin/avr-gcc
+CXX     = /usr/bin/avr-g++
+AS      = /usr/bin/avr-as
+OBJCOPY = /usr/bin/avr-objcopy
+OBJDUMP = /usr/bin/avr-objdump
+AR      = /usr/bin/avr-ar
+SIZE    = /some_path/alternative_avr-size
+NM      = /some_path/alternative_avr-nm
 ```
 
 **Requirement:** *Optional*
@@ -1089,6 +1243,24 @@ Defaults to `screen`
 
 ```Makefile
 MONITOR_CMD = minicom
+```
+
+**Requirement:** *Optional*
+
+----
+
+### MONITOR_PARAMS
+
+**Description:**
+
+Additional parameters for the putty -sercfg command line argument.
+
+Interpreted as a comma-separated list of configuration options.
+
+**Example:**
+
+```Makefile
+MONITOR_PARAMS = 8,1,n,N
 ```
 
 **Requirement:** *Optional*
@@ -1148,6 +1320,24 @@ Usually can be auto-detected within the parent of `AVR_TOOLS_DIR`
 AVRDUDE_CONF = /etc/avrdude.conf
 # or
 AVRDUDE_CONF = /usr/share/arduino/hardware/tools/avrdude.conf
+```
+
+**Requirement:** *Optional*
+
+----
+
+### AVRDUDE_AUTOERASE_FLASH
+
+**Description:**
+
+Enable autoerase flash.
+
+By default disabled.
+
+**Example:**
+
+```Makefile
+AVRDUDE_AUTOERASE_FLASH = yes
 ```
 
 **Requirement:** *Optional*
@@ -1227,6 +1417,54 @@ ALTERNATE_CORE_PATH = $(HOME)/sketchbook/hardware/arduino-tiny/cores/tiny
 
 **Requirement:** *Optional*
 
+----
+
+### CORE_VER
+
+**Description:**
+
+Alternate core release version. The Arduino board support packages are within
+a sub-directory indicated by this define.
+
+Defaults to package current release.
+
+**Example:**
+
+```Makefile
+CORE_VER = 1.6.17
+```
+
+**Requirement:** *Optional*
+
+----
+
+### CMSIS_DIR
+
+**Description:**
+
+Path to ARM CMSIS. Normally installed as part of ARM  board support.
+
+Defaults to `ARDUINO_PACKAGE_DIR/tools/CMSIS/4.5.0/CMSIS`
+
+**Example:**
+
+```Makefile
+CMSIS_DIR = /usr/share/CMSIS
+```
+
+**Requirement:** *Optional*
+
+----
+
+### CMSIS_ATMEL_DIR
+
+**Description:**
+
+Path to CMSIS-Atmel directory. Installed with ARM support package.
+
+Defaults to `ARDUINO_PACKAGE_DIR/tools/CMSIS-Atmel/1.1.0/CMSIS`
+
+**Requirement:** *Optional*
 ----
 
 ### BOARDS_TXT
@@ -1385,6 +1623,67 @@ Would result in an absolute path to the bootloader hex file of `$(HOME)/sketchbo
 
 ----
 
+### BOOTLOADER_SIZE
+
+**Description:**
+
+Size of bootloader on ARM devices, ensures correct start address when flashing
+application area. Normally parsed from boards.txt
+
+Defaults to `0x2000`
+
+**Requirement:** *Optional*
+
+----
+
+### BOOTLOADER_UNPROTECT
+
+**Description:**
+
+Bootloader unprotect sequence for upload tool. Normally parsed from boards.txt
+
+Defaults to `at91samd bootloader 0`
+
+**Requirement:** *Optional*
+
+----
+
+### BOOTLOADER_PROTECT
+
+**Description:**
+
+Bootloader protect sequence for upload tool. Normally parsed from boards.txt
+
+Defaults to `at91samd bootloader 16384`
+
+**Requirement:** *Optional*
+
+----
+
+### BOOTLOADER_PROTECT_VERIFY
+
+**Description:**
+
+Bootloader protect and verify  sequence for upload tool. Normally parsed from boards.txt
+
+Defaults to `at91samd bootloader`
+
+**Requirement:** *Optional*
+
+----
+
+### BOOTLOADER_UPLOAD_TOOL
+
+**Description:**
+
+Bootloader upload binary to use. Normally parsed from boards.txt.
+
+Defaults to `openocd`
+
+**Requirement:** *Optional*
+
+----
+
 ## ChipKIT variables
 
 ### MPIDE_DIR
@@ -1402,6 +1701,163 @@ MPIDE_DIR = $(HOME)/mpide
 ```
 
 **Requirement:** *Optional*
+
+----
+
+### MPIDE_PREFERENCES_PATH
+
+**Description:**
+
+Path to chipKIT `preferences.txt` file.
+
+Usually can be auto-detected as `AUTO_MPIDE_PREFERENCES_PATH` from the defaults `$(HOME)/.mpide/preferences.txt` (Linux) or `$(HOME)/Library/Mpide/preferences.txt` (OSX)
+
+**Example:**
+
+```Makefile
+MPIDE_PREFERENCES_PATH = $(HOME)/chipkit/preferences.txt
+```
+
+**Requirement:** *Optional*
+
+----
+
+## ARM variables
+
+### UPLOAD_TOOL
+
+**Description:**
+
+Tool to upload binary to device. Normally parsed from boards.txt.
+
+Defaults to `openocd`
+
+**Example:**
+
+```Makefile
+UPLOAD_TOOL = gdb
+```
+
+**Requirement:** *Optional*
+
+----
+
+### DEBUG
+
+**Description:**
+
+Define to set `DEBUG_FLAGS` and allow stepping of code using GDB.
+
+Defaults to undefined.
+
+**Example:**
+
+```Makefile
+DEBUG = 1
+```
+
+**Requirement:** *Optional*
+
+----
+
+### GDB_PORT
+
+**Description:**
+
+Server port to use for GDB debugging or upload. Default assumes server running
+on localhost but can re-define to use Black Magic Probe serial port.
+
+Defaults to `localhost:3333`
+
+**Example:**
+
+```Makefile
+GDB_PORT = /dev/ttyACM0
+```
+
+**Requirement:** *Optional*
+
+----
+
+### GDB_OPTS
+
+**Description:**
+
+Optional arguments to parse to GDB command.
+
+Defaults to `-ex "target extended-remote $(GDB_PORT)" -ex "monitor swdp_scan" -ex "attach 1" -ex "load" -d $(OBJDIR) $(TARGET_ELF)`
+
+**Requirement:** *Optional*
+
+----
+
+### GDB_UPLOAD_OPTS
+
+**Description:**
+
+Optional arguments to parse to GDB command when uploading binary only.
+
+Defaults to `GDB_UPLOAD_OPTS = $(GDB_OPTS) -ex "set confirm off" -ex "set target-async off" -ex "set remotetimeout 30" -ex "detach" -ex "kill" -ex "quit"`
+
+**Requirement:** *Optional*
+
+----
+
+### BOSSA
+
+**Description:**
+
+Path to bossac binary.
+
+Can usually be detected from `$ARDUINO_PACKAGE_DIR` /tools subdirectory when ARM
+device support is installed.
+
+**Requirement:** *Optional*
+
+----
+
+### BOSSA_OPTS
+
+**Description:**
+
+Flags to pass to bossac command.
+
+Defaults to `-d --info --erase --write --verify --reset`
+
+**Requirement:** *Optional*
+
+----
+
+### OPENOCD
+
+**Description:**
+
+Path to openocd binary.
+
+Can usually be detected from `$ARDUINO_PACKAGE_DIR` /tools subdirectory when ARM
+device support is installed.
+
+**Requirement:** *Optional*
+
+----
+
+### OPENOCD_OPTS
+
+**Description:**
+
+Flags to pass to openocd command. If using openocd from non-Arduino
+distributions, one should define this with the path to the Arduino openocd script.
+
+Defaults to `-d2`
+
+Example:
+
+```Makefile
+OPENOCD_OPTS = $(ARDUINO_PACKAGE_DIR)/$(ARDMK_VENDOR)/tools/openocd/0.9.0-arduino6-static/share/openocd/scripts/ -f $(ARDUINO_PACKAGE_DIR)/$(ARDMK_VENDOR)/hardware/samd/1.6.17/variants/$(VARIANT)/$(OPENOCD_SCRIPT) 
+```
+
+**Requirement:** *Optional*
+
 
 ----
 
@@ -1450,24 +1906,6 @@ Location of `ctags` binary. Defaults to user path.
 
 ```Makefile
 CTAGS_CMD = /usr/local/bin/
-```
-
-**Requirement:** *Optional*
-
-----
-
-### MPIDE_PREFERENCES_PATH
-
-**Description:**
-
-Path to chipKIT `preferences.txt` file.
-
-Usually can be auto-detected as `AUTO_MPIDE_PREFERENCES_PATH` from the defaults `$(HOME)/.mpide/preferences.txt` (Linux) or `$(HOME)/Library/Mpide/preferences.txt` (OSX)
-
-**Example:**
-
-```Makefile
-MPIDE_PREFERENCES_PATH = $(HOME)/chipkit/preferences.txt
 ```
 
 **Requirement:** *Optional*

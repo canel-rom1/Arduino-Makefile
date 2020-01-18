@@ -7,8 +7,11 @@ This is a very simple Makefile which knows how to build Arduino sketches. It def
 - Very robust
 - Highly customizable
 - Supports all official AVR-based Arduino boards
+- Supports official ARM-based Arduino boards using Atmel SAM chip family
+and includes on-device debugging targets.
 - Supports chipKIT
 - Supports Teensy 3.x (via Teensyduino)
+- Supports Robotis OpenCR 1.0
 - Works on all three major OS (Mac, Linux, Windows)
 - Auto detects serial baud rate and libraries used
 - Support for `*.ino` and `*.pde` sketches as well as raw `*.c` and `*.cpp`
@@ -51,10 +54,10 @@ $ brew install --HEAD arduino-mk
 #### Arch Linux
 
 Arch Linux users can use the unofficial AUR package [arduino-mk](https://aur.archlinux.org/packages/arduino-mk/).
-It can be installed using the following command.
+It can be installed with [AUR] helper using the following command.
 
 ```sh
-yaourt -S arduino-mk
+yay -S arduino-mk
 ```
 
 #### Fedora
@@ -114,6 +117,12 @@ On openSUSE:
 zypper install python-serial
 ```
 
+On Arch:
+
+```sh
+sudo pacman -S python-pyserial
+```
+
 On Mac using MacPorts:
 
 ```sh
@@ -122,7 +131,7 @@ sudo port install py27-serial
 
 On Windows:
 
-You need to install Cygwin and its packages for Make, Perl and the following Serial library.
+You need to install Cygwin and its packages for Make, Perl, Python2 and the following Serial library.
 
 Assuming you included Python in your Cygwin installation:
 
@@ -217,7 +226,7 @@ On Windows (using MSYS and PuTTY), you might want to set the following extra par
 
 ```make
     MONITOR_CMD   = putty
-    MONITOR_PARMS = 8,1,n,N
+    MONITOR_PARAMS = 8,1,n,N
 ```
 
 On Arduino 1.5+ installs, you should set the architecture to either `avr` or `sam` and if using a submenu CPU type, then also set that:
@@ -313,6 +322,72 @@ See examples/BlinkOpenCM for example usage.
 
 For large Robotis projects, [libmaple](https://github.com/Rhoban/Maple) may be more appropriate, as the OpenCM IDE uses a very old compiler release.
 
+## Arduino ARM Boards
+
+For Arduino boards using ARM architechure, specifically the Atmel SAM series
+((SAM3X8E) Due; (SAMD21) Arduino M0 [Pro], Zero, MKR1000, Feather M0, etc.), first
+install the board support package from the IDE or other distribution channels.
+
+Define`ARDUINO_PACKAGE_DIR` as the root path containing the ARM support
+package (the manufacturer folder) and the `BOARD_TAG` (see `make show_boards`
+for help) within your project Makefile. Include 'Sam.mk' rather than
+  'Arduino.mk' at the end of your file - see examples/ZeroBlink,
+  examples/MZeroBlink and examples/DueBlink for example usage.
+
+**Note**: The Arduino IDE does not install board support packages to
+the base Arduino installation directory (the directory that will work with AVR
+Makefiles). They are generally installed to a '.arduino15/packages' folder in
+the users home directory. This is the reason for the new `ARDUINO_PACKAGE_DIR`
+define. On Windows, the package directory is often in the user home directory
+so advice is to create a symblic link to avoid slash/space in path problems.
+You can also manually install support packages in your Sketchbook 'hardware'
+folder, then define ARDUINO_PACKAGE_DIR as this path.
+
+If using a SAM board from a manufacturer other than Arduino, one must still
+install the Arduino board support as above (unless using externally defined
+toolchain) and then define the location of the manufacturer board support core
+using the ALTERNATIVE_CORE_PATH define. For example: `ALTERNATE_CORE_PATH =
+$(ARDUINO_SKETCHBOOK)/hardware/sparkfun/samd`
+
+The programing method will auto-detect based on the `BOARD_TAG` settings read
+from boards.txt:
+
+Programming using OpenOCD CMSIS-DAP with the Programming/debug USB is
+currently supported (the same method used by the IDE), including burning
+bootloaders. External CMSIS tools such as Atmel Ice will also work with this
+method. Black Magic Probe (BMP) support is also included using GDB for both
+uploading and debugging.
+
+Native USB programing using Bossa (Due, Zero, MKR1000, Feather style bootloaders)
+and avrdude (M0 bootloaders) is supported. The bootloaders on these devices
+requires a double press of the reset button or open/closing the serial port at
+1200 BAUD. The automatic entry of the bootloader is attempted using
+`ard-reset-arduino` when using the general `make upload` target by polling
+attached devices until the bootloader port re-attaches (same method as the
+IDE). On Windows, the USB enumerates as differnt COM ports for the CDC Serial
+and bootloader and these must be defined. On encountering problems, one can
+manually enter the bootloader then upload using the `make raw_upload` target.
+Note that the `make reset` target will enter the bootloader on these devices;
+there is no way to reset over USB.
+
+If using system installed tools, be aware that `openocd` and `bossa` were
+orginally forked for Arduino support and system distributions may not be up
+to date with merged changes. `bossa` must be version 1.7->. `openocd` should
+work but there may be problems at run time
+[ref](https://github.com/pda/arduino-zero-without-ide). Ideally, use the
+support packaged version or compile and install the Arduino fork.
+
+With the ARM chipset and using a CMSIS-DAP tool, on-device debugging is made available:
+
+* `debug_init` and `debug` targets for on-device debugging using GDB. To use
+  this, one must start the GDB server with `make debug_init &`, followed by
+  connecting to the target with `make debug`. If using a Black Magic Probe,
+  one can just use `make debug`. At the moment, a system wide `arm-none-eabi-gdb` must be
+  installed as the one supplied with the Arduino toolchain
+  does not appear to work. 
+* Example usage: https://asciinema.org/a/Jarz7Pr3gD6mqaZvCACQBzqix
+* See the examples/MZeroBlink Makefile for a commented example.
+
 ## Versioning
 
 The current version of the makefile is `1.6.0`. You can find the full history in the [HISTORY.md](HISTORY.md) file
@@ -332,9 +407,8 @@ Also checkout the [contribution guide](CONTRIBUTING.md) for more details.
 
 If you are looking for ideas to work on, then check out the following TODO items or the [issue tracker](https://github.com/sudar/Arduino-Makefile/issues/).
 
-## Limitations / Know Issues / TODO's
+## Limitations / Known Issues / TODO's
 
-- Doesn't support SAM boards yet.
 - Since it doesn't do any pre processing like Arduino IDE, you have to declare all methods before you use them ([issue #59](https://github.com/sudar/Arduino-Makefile/issues/59))
 - More than one .ino or .pde file is not supported yet ([issue #49](https://github.com/sudar/Arduino-Makefile/issues/49))
 - When you compile for the first time, it builds all libs inside Arduino directory even if it is not needed. But while linking only the relevant files are linked. ([issue #29](https://github.com/sudar/Arduino-Makefile/issues/29)). Even Arduino IDE does the same thing though.
@@ -427,6 +501,20 @@ programs to assist the maintainers of the Makefile. Run
 all of the examples. The bootstrap script is primarily intended for use by a
 continuous integration server, specifically Travis CI. It is not intended for
 normal users.
+
+## Makefile Generator and Project Initialisation
+
+`ardmk-init` within the bin/ folder is a utility Python script to create a
+Arduino-mk Makefile for a project and also has option to create a traditional *tree*
+organization (src, lib, bin). It can be used as with commanline arguments or
+prompted - see examples below (append `$ARDMK_DIR/bin/` to command if not on path):
+
+* Run prompted within current working directory: `ardmk-init`
+* Create Arduino Uno Makefile (useful within a library example): `ardmk-init -qb uno`
+* Create boilerplate Arduino Uno project in current working directory of same
+  name: `ardmk-init -b uno --quiet --project`
+* Create Arduino-mk nano Makefile in current working directory with template .ino: `ardmk-init -b nano -u atmega328 -qtn my-project`
+* See `ardmk-init --help` for more.
 
 ### Bare-Arduino–Project
 
