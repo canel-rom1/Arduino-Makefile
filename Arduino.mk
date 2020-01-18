@@ -1799,13 +1799,9 @@ else
 endif
 else ifeq ($(notdir $(MONITOR_CMD)), picocom)
 		$(MONITOR_CMD) -b $(MONITOR_BAUDRATE) $(MONITOR_PARAMS) $(call get_monitor_port)
-<<<<<<< HEAD
 else ifeq ($(MONITOR_CMD), minicom)
 		$(MONITOR_CMD) -b $(MONITOR_BAUDRATE) -D $(MONITOR_PARAMS) $(call get_monitor_port)
-else ifeq ($(MONITOR_CMD), cu)
-=======
 else ifeq ($(notdir $(MONITOR_CMD)), cu)
->>>>>>> e870443f4824cbbcd560f500c6072012dd668f62
 		$(MONITOR_CMD) -l $(call get_monitor_port) -s $(MONITOR_BAUDRATE)
 else
 		$(MONITOR_CMD) $(call get_monitor_port) $(MONITOR_BAUDRATE)
